@@ -106,6 +106,14 @@ export function Navbar({ className }: { className?: string }) {
 
         <div className="flex shrink-0 items-center gap-2">
           <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/login" />}
+          >
+            Login
+          </Button>
+          <Button
             size="sm"
             className="gap-1.5 shadow-sm ring-1 ring-primary/15"
             nativeButton={false}

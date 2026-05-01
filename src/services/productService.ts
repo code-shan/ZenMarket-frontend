@@ -15,6 +15,14 @@ function resolveMediaUrl(url: string | null | undefined): string | null {
   return s.startsWith("/") ? `${origin}${s}` : `${origin}/${s}`
 }
 
+function readOutOfStock(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false
+  const o = value as Record<string, unknown>
+  if (typeof o.is_out_of_stock === "boolean") return o.is_out_of_stock
+  if (typeof o.isOutOfStock === "boolean") return o.isOutOfStock
+  return false
+}
+
 function normalizeProduct(p: Product): Product {
   const id =
     typeof p.id === "number" && Number.isFinite(p.id)
@@ -24,6 +32,7 @@ function normalizeProduct(p: Product): Product {
   return {
     ...p,
     id,
+    is_out_of_stock: readOutOfStock(p),
     image_url: resolveMediaUrl(p.image_url),
     category: p.category
       ? {

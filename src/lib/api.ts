@@ -53,6 +53,48 @@ export const api = {
 
     return response.json() as Promise<T>
   },
+
+  /**
+   * POST JSON body. Does not throw on HTTP error status — callers inspect JSON.
+   * Throws on network failure or non-JSON response body.
+   */
+  async postJson(path: string, body: unknown): Promise<unknown> {
+    let url: string
+    try {
+      url = apiUrl(path)
+    } catch {
+      throw new Error("Something went wrong. Please try again.")
+    }
+
+    let response: Response
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      })
+    } catch {
+      throw new Error("Something went wrong. Please try again.")
+    }
+
+    const text = await response.text()
+    const trimmed = text.trim()
+    if (!trimmed) {
+      if (!response.ok) {
+        throw new Error("Something went wrong. Please try again.")
+      }
+      return {}
+    }
+
+    try {
+      return JSON.parse(trimmed) as unknown
+    } catch {
+      throw new Error("Something went wrong. Please try again.")
+    }
+  },
 }
 
 // Backwards-compatible exports used elsewhere in the codebase.

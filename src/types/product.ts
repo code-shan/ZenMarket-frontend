@@ -16,6 +16,8 @@ export type Product = {
   final_price: string
   image_url?: string | null
   is_featured: boolean
+  /** When true, product cannot be purchased. */
+  is_out_of_stock: boolean
   category?: ProductCategory | null
   created_at: string
 }

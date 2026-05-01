@@ -93,6 +93,9 @@ function ProductDetailContent({ product }: { product: Product }) {
         <Link href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}>
           ← Back
         </Link>
+        {product.is_out_of_stock ? (
+          <Badge variant="destructive">Out of stock</Badge>
+        ) : null}
         {product.is_featured ? (
           <Badge variant="secondary">Featured</Badge>
         ) : null}
@@ -158,10 +161,12 @@ function ProductDetailContent({ product }: { product: Product }) {
                 ) : null}
               </div>
               <Button className="w-full" disabled>
-                Buy now
+                {product.is_out_of_stock ? "Out of stock" : "Buy now"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Checkout will connect when payments are enabled.
+                {product.is_out_of_stock
+                  ? "This item is currently unavailable."
+                  : "Checkout will connect when payments are enabled."}
               </p>
             </CardContent>
           </Card>

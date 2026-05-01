@@ -21,6 +21,12 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
+const SORT_LABELS: Record<ProductSort, string> = {
+  newest: "Newest",
+  price_low_to_high: "Price: Low to High",
+  price_high_to_low: "Price: High to Low",
+}
+
 function parseSort(raw: string | undefined): ProductSort {
   if (
     raw === "newest" ||
@@ -55,7 +61,13 @@ function hasActiveFilters(sp: Record<string, string | string[] | undefined>): bo
 
 function PaginationSkeleton() {
   return (
-    <div className="flex h-14 animate-pulse justify-between rounded-lg border border-border/40 bg-muted/30" />
+    <div className="flex h-10 animate-pulse items-center justify-between border-t border-border/60 pt-6">
+      <div className="h-4 w-24 rounded bg-muted" />
+      <div className="flex gap-2">
+        <div className="h-8 w-20 rounded-md bg-muted" />
+        <div className="h-8 w-16 rounded-md bg-muted" />
+      </div>
+    </div>
   )
 }
 
@@ -99,77 +111,98 @@ export default async function ProductsPage({ searchParams }: Props) {
   const rangeEnd = Math.min(current_page * per_page, total)
 
   return (
-    <main className="min-h-[60vh] border-b border-border/40 bg-gradient-to-b from-muted/25 to-background pb-16 pt-10 md:pb-24 md:pt-14">
-      <PageContainer className="space-y-8 md:space-y-10">
-        <header className="mx-auto max-w-3xl space-y-3 text-center md:space-y-4">
-          <h1 className="font-heading text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+    <main className="min-h-[60vh] border-b border-border/50 bg-muted/20 pb-10 pt-8 md:pb-14 md:pt-10">
+      <PageContainer>
+        <header className="mb-6 text-center lg:mb-8 lg:text-left">
+          <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
             Shop Products
           </h1>
-          <p className="text-pretty text-base text-muted-foreground md:text-lg">
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base lg:mx-0 lg:max-w-xl">
             Browse quality products and find the best deals across all categories.
           </p>
         </header>
 
-        <ProductFilters
-          categories={categoryOptions}
-          initialSearch={search}
-          initialCategoryId={category_id ?? ""}
-          initialMinPrice={min_price}
-          initialMaxPrice={max_price}
-          initialSort={sort}
-        />
+        <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="mb-8 shrink-0 lg:sticky lg:top-24 lg:mb-0 lg:self-start">
+            <ProductFilters
+              categories={categoryOptions}
+              initialSearch={search}
+              initialCategoryId={category_id ?? ""}
+              initialMinPrice={min_price}
+              initialMaxPrice={max_price}
+              initialSort={sort}
+            />
+          </aside>
 
-        <p className="text-sm tabular-nums text-muted-foreground">
-          {total === 0 ? (
-            <>No products match your criteria.</>
-          ) : (
-            <>
-              Showing {rangeStart}–{rangeEnd} of {total}{" "}
-              {total === 1 ? "product" : "products"}
-            </>
-          )}
-        </p>
+          <div className="min-w-0 space-y-4">
+            <div className="flex flex-col gap-2 border-b border-border/50 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4">
+              <p className="text-sm tabular-nums text-muted-foreground">
+                {total === 0 ? (
+                  <>No products match your criteria.</>
+                ) : (
+                  <>
+                    Showing {rangeStart}–{rangeEnd} of {total}{" "}
+                    {total === 1 ? "product" : "products"}
+                  </>
+                )}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="tabular-nums">
+                  Sort:{" "}
+                  <span className="font-medium text-foreground">
+                    {SORT_LABELS[sort]}
+                  </span>
+                </span>
+                {filtersActive ? (
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[0.7rem] font-medium ring-1 ring-border/80">
+                    Filters active
+                  </span>
+                ) : null}
+              </div>
+            </div>
 
-        {items.length === 0 ? (
-          <div
-            className="rounded-2xl border border-border/60 bg-muted/20 px-6 py-14 text-center shadow-sm"
-            role="status"
-          >
-            <h2 className="font-heading text-xl font-semibold tracking-tight">
-              {filtersActive ? "No products found" : "No products available"}
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-              {filtersActive
-                ? "Try adjusting your search or filters to find what you are looking for."
-                : "Please check again later."}
-            </p>
-            {filtersActive ? (
-              <Button
-                className="mt-8"
-                nativeButton={false}
-                render={<Link href="/products" />}
+            {items.length === 0 ? (
+              <div
+                className="rounded-xl border border-border/60 bg-background px-5 py-12 text-center shadow-sm sm:py-14"
+                role="status"
               >
-                Clear filters
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <>
-            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {items.map((product) => (
-                <li key={product.id}>
-                  <ProductCard product={product} />
-                </li>
-              ))}
-            </ul>
+                <h2 className="font-heading text-lg font-semibold tracking-tight">
+                  {filtersActive ? "No products found" : "No products available"}
+                </h2>
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                  {filtersActive
+                    ? "Try adjusting your search or filters to find what you are looking for."
+                    : "Please check again later."}
+                </p>
+                {filtersActive ? (
+                  <Button
+                    className="mt-6"
+                    nativeButton={false}
+                    render={<Link href="/products" />}
+                  >
+                    Clear filters
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <>
+                <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  {items.map((product) => (
+                    <li key={product.id}>
+                      <ProductCard product={product} />
+                    </li>
+                  ))}
+                </ul>
 
-            {total_pages > 1 ? (
-              <Suspense fallback={<PaginationSkeleton />}>
-                <ProductPagination pagination={pagination} />
-              </Suspense>
-            ) : null}
-          </>
-        )}
+                {total_pages > 1 ? (
+                  <Suspense fallback={<PaginationSkeleton />}>
+                    <ProductPagination pagination={pagination} />
+                  </Suspense>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
       </PageContainer>
     </main>
   )

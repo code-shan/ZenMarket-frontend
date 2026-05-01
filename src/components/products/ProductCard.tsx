@@ -16,6 +16,7 @@ import {
   getProductDiscountLabel,
 } from "@/lib/product-display"
 import { isLoopbackHttpUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media"
+import { cn } from "@/lib/utils"
 import type { Product } from "@/types/product"
 
 export function ProductCard({
@@ -46,12 +47,16 @@ export function ProductCard({
     : product.name
 
   const compact = variant === "compact"
+  const outOfStock = product.is_out_of_stock
 
   return (
     <Card
-      className={`group flex h-full flex-col overflow-hidden border-border/80 shadow-sm transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-lg ${
-        compact ? "text-sm" : ""
-      }`}
+      className={cn(
+        "group flex h-full flex-col overflow-hidden border-border/80 shadow-sm transition-[transform,box-shadow] duration-300",
+        !outOfStock && "hover:-translate-y-1 hover:shadow-lg",
+        compact && "text-sm",
+        outOfStock && "opacity-[0.96]"
+      )}
     >
       <div
         className={`relative w-full overflow-hidden rounded-t-xl bg-muted ${
@@ -63,10 +68,13 @@ export function ProductCard({
           alt={imageAlt}
           fill
           unoptimized={unoptimized}
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className={`object-cover transition-transform duration-300 group-hover:scale-[1.02] ${
-            usingPlaceholder ? "opacity-90" : ""
-          }`}
+          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, (max-width: 1536px) 33vw, 25vw"
+          className={cn(
+            "object-cover transition-transform duration-300",
+            !outOfStock && "group-hover:scale-[1.02]",
+            usingPlaceholder ? "opacity-90" : "",
+            outOfStock && "brightness-[0.92]"
+          )}
         />
         {usingPlaceholder ? (
           <>
@@ -80,6 +88,11 @@ export function ProductCard({
         ) : null}
 
         <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5">
+          {outOfStock ? (
+            <Badge variant="destructive" className="shadow-sm">
+              Out of stock
+            </Badge>
+          ) : null}
           {product.is_featured ? (
             <Badge variant="secondary" className="shadow-sm">
               Featured
@@ -100,9 +113,6 @@ export function ProductCard({
         <CardTitle className={`line-clamp-2 leading-snug ${compact ? "text-base" : "text-lg"}`}>
           {product.name}
         </CardTitle>
-        <CardDescription className="line-clamp-2 text-pretty">
-          {product.description}
-        </CardDescription>
       </CardHeader>
 
       <CardContent className={`mt-auto flex flex-col gap-2 ${compact ? "pb-2 pt-0" : "pb-2 pt-0"}`}>
@@ -133,10 +143,14 @@ export function ProductCard({
           variant="outline"
           type="button"
           disabled
-          title="Coming soon"
-          aria-label={`Add ${product.name} to cart — coming soon`}
+          title={outOfStock ? "Out of stock" : "Coming soon"}
+          aria-label={
+            outOfStock
+              ? `${product.name} is out of stock`
+              : `Add ${product.name} to cart — coming soon`
+          }
         >
-          Add to Cart
+          {outOfStock ? "Unavailable" : "Add to Cart"}
         </Button>
       </CardFooter>
     </Card>

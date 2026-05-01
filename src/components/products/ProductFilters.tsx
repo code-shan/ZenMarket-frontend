@@ -99,17 +99,19 @@ export function ProductFilters({
   }
 
   return (
-    <Card className="border-border/80 shadow-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg">Filters</CardTitle>
-        <CardDescription>
-          Refine results by keyword, category, price range, and sort order.
+    <Card className="rounded-xl border-border/80 shadow-sm">
+      <CardHeader className="space-y-1 pb-3 pt-5">
+        <CardTitle className="text-base font-semibold">Filters</CardTitle>
+        <CardDescription className="text-xs leading-snug">
+          Narrow by keyword, category, price, or sort.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 xl:items-end">
-          <div className="space-y-2 sm:col-span-2 xl:col-span-2">
-            <Label htmlFor="product-search">Search</Label>
+      <CardContent className="space-y-4 pb-5 pt-0">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="product-search" className="text-xs">
+              Search
+            </Label>
             <Input
               id="product-search"
               placeholder="Search products..."
@@ -119,14 +121,16 @@ export function ProductFilters({
                 if (e.key === "Enter") applyFilters()
               }}
               autoComplete="off"
-              className="h-10"
+              className="h-9 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="product-category">Category</Label>
+            <Label htmlFor="product-category" className="text-xs">
+              Category
+            </Label>
             <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? ALL)}>
-              <SelectTrigger id="product-category" className="h-10 w-full">
+              <SelectTrigger id="product-category" className="h-9 w-full text-sm">
                 <SelectValue placeholder="All categories" />
               </SelectTrigger>
               <SelectContent>
@@ -140,37 +144,44 @@ export function ProductFilters({
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="min-price">Min price</Label>
-            <Input
-              id="min-price"
-              inputMode="decimal"
-              placeholder="Min price"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              className="h-10"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="min-price" className="text-xs">
+                Min price
+              </Label>
+              <Input
+                id="min-price"
+                inputMode="decimal"
+                placeholder="Min"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="max-price" className="text-xs">
+                Max price
+              </Label>
+              <Input
+                id="max-price"
+                inputMode="decimal"
+                placeholder="Max"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="max-price">Max price</Label>
-            <Input
-              id="max-price"
-              inputMode="decimal"
-              placeholder="Max price"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className="h-10"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="product-sort">Sort</Label>
+            <Label htmlFor="product-sort" className="text-xs">
+              Sort
+            </Label>
             <Select
               value={sort}
               onValueChange={(v) => setSort((v as ProductSort) ?? "newest")}
             >
-              <SelectTrigger id="product-sort" className="h-10 w-full">
+              <SelectTrigger id="product-sort" className="h-9 w-full text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -184,12 +195,19 @@ export function ProductFilters({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3 border-t border-border/60 pt-4">
-          <Button type="button" onClick={applyFilters}>
-            Apply filters
+        <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-4">
+          <Button type="button" size="sm" className="w-full" onClick={applyFilters}>
+            Apply
           </Button>
-          <Button variant="outline" type="button" nativeButton={false} render={<Link href="/products" />}>
-            Clear filters
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            className="w-full"
+            nativeButton={false}
+            render={<Link href="/products" />}
+          >
+            Clear
           </Button>
         </div>
       </CardContent>
