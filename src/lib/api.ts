@@ -12,14 +12,43 @@ function apiUrl(path: string): string {
   return `${base}/${normalized}`
 }
 
+/** First string from Laravel-style `{ errors: { field: ["msg"] } }` bodies. */
+function firstValidationErrorsLine(errors: unknown): string {
+  if (!errors || typeof errors !== "object") return ""
+  for (const val of Object.values(errors as Record<string, unknown>)) {
+    if (!Array.isArray(val)) continue
+    for (const item of val) {
+      if (typeof item === "string" && item.trim() !== "") return item.trim()
+    }
+  }
+  return ""
+}
+
+function messageFromApiErrorJson(trimmed: string): string {
+  if (!trimmed) return ""
+  try {
+    const json = JSON.parse(trimmed) as Record<string, unknown>
+    const msg =
+      typeof json.message === "string" ? json.message.trim() : ""
+    const field = firstValidationErrorsLine(json.errors)
+    return msg || field || trimmed
+  } catch {
+    return trimmed
+  }
+}
+
 async function parseErrorBody(response: Response): Promise<string> {
   const contentType = response.headers.get("content-type") ?? ""
   if (contentType.includes("application/json")) {
     try {
       const json = (await response.json()) as unknown
       if (json && typeof json === "object") {
-        const msg = (json as { message?: unknown }).message
-        if (typeof msg === "string" && msg.trim() !== "") return msg
+        const o = json as Record<string, unknown>
+        const msg =
+          typeof o.message === "string" ? o.message.trim() : ""
+        const field = firstValidationErrorsLine(o.errors)
+        const combined = msg || field
+        if (combined !== "") return combined
       }
     } catch {
       // ignore
@@ -35,12 +64,19 @@ async function parseErrorBody(response: Response): Promise<string> {
 }
 
 export const api = {
-  async get<T>(path: string): Promise<T> {
+  async get<T>(
+    path: string,
+    options?: { token?: string; cache?: RequestCache }
+  ): Promise<T> {
     const url = apiUrl(path)
+    const headers: Record<string, string> = { Accept: "application/json" }
+    if (options?.token?.trim()) {
+      headers.Authorization = `Bearer ${options.token.trim()}`
+    }
     const response = await fetch(url, {
       method: "GET",
-      headers: { Accept: "application/json" },
-      cache: "no-store",
+      headers,
+      cache: options?.cache ?? "no-store",
     })
 
     if (!response.ok) {
@@ -104,7 +140,7 @@ export const api = {
     body: unknown,
     options?: { token?: string }
   ): Promise<T> {
-    return jsonMutation<T>("PUT", path, body, options)
+    return authJsonMutation<T>("PUT", path, body, options)
   },
 
   /**
@@ -115,14 +151,32 @@ export const api = {
     body: unknown,
     options?: { token?: string }
   ): Promise<T> {
-    return jsonMutation<T>("PATCH", path, body, options)
+    return authJsonMutation<T>("PATCH", path, body, options)
+  },
+
+  /**
+   * POST JSON with optional Bearer token. Throws if response is not OK or body is not JSON.
+   */
+  async post<T>(
+    path: string,
+    body: unknown,
+    options?: { token?: string }
+  ): Promise<T> {
+    return authJsonMutation<T>("POST", path, body, options)
+  },
+
+  /**
+   * DELETE with optional Bearer token. Throws if response is not OK or body is not JSON.
+   */
+  async delete<T>(path: string, options?: { token?: string }): Promise<T> {
+    return authJsonMutation<T>("DELETE", path, undefined, options)
   },
 }
 
-async function jsonMutation<T>(
-  method: "PUT" | "PATCH",
+async function authJsonMutation<T>(
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
-  body: unknown,
+  body: unknown | undefined,
   options?: { token?: string }
 ): Promise<T> {
   let url: string
@@ -134,7 +188,9 @@ async function jsonMutation<T>(
 
   const headers: Record<string, string> = {
     Accept: "application/json",
-    "Content-Type": "application/json",
+  }
+  if (method !== "DELETE") {
+    headers["Content-Type"] = "application/json"
   }
   if (options?.token?.trim()) {
     headers.Authorization = `Bearer ${options.token.trim()}`
@@ -145,7 +201,10 @@ async function jsonMutation<T>(
     response = await fetch(url, {
       method,
       headers,
-      body: JSON.stringify(body),
+      body:
+        method === "DELETE"
+          ? undefined
+          : JSON.stringify(body ?? {}),
     })
   } catch {
     throw new Error("Something went wrong. Please try again.")
@@ -155,17 +214,7 @@ async function jsonMutation<T>(
   const trimmed = text.trim()
 
   if (!response.ok) {
-    let msg = ""
-    if (trimmed) {
-      try {
-        const json = JSON.parse(trimmed) as { message?: unknown }
-        if (typeof json.message === "string" && json.message.trim()) {
-          msg = json.message.trim()
-        }
-      } catch {
-        msg = trimmed
-      }
-    }
+    const msg = trimmed ? messageFromApiErrorJson(trimmed) : ""
     throw new Error(
       msg || `Request failed: ${response.status} ${response.statusText}`
     )
