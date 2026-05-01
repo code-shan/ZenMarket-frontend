@@ -15,7 +15,6 @@ type ButtonProps = ComponentProps<typeof Button>
 export function AddToCartButton({
   productId,
   disabled = false,
-  disabledLabel = "Unavailable",
   variant = "outline",
   size = "sm",
   wrapperClassName,
@@ -24,7 +23,6 @@ export function AddToCartButton({
 }: {
   productId: number
   disabled?: boolean
-  disabledLabel?: string
   variant?: ButtonProps["variant"]
   size?: ButtonProps["size"]
   wrapperClassName?: string
@@ -62,7 +60,6 @@ export function AddToCartButton({
   }
 
   const busy = pending
-  const showUnavailable = disabled && !busy
 
   return (
     <div className={cn("flex w-full min-w-0 flex-col", wrapperClassName)}>
@@ -73,16 +70,10 @@ export function AddToCartButton({
         className={cn("min-w-0 shrink-0", buttonClassName)}
         disabled={disabled}
         aria-busy={busy}
-        aria-label={
-          showUnavailable
-            ? "Unavailable"
-            : busy
-              ? "Adding to cart"
-              : "Add to cart"
-        }
+        aria-label={busy ? "Adding to cart" : "Add to cart"}
         onClick={() => void handleClick()}
       >
-        {showUnavailable ? disabledLabel : busy ? "Adding..." : "Add to Cart"}
+        {busy ? "Adding..." : "Add to Cart"}
       </Button>
     </div>
   )

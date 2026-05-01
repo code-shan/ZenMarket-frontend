@@ -15,7 +15,6 @@ type ButtonProps = ComponentProps<typeof Button>
 export function BuyNowButton({
   productId,
   disabled = false,
-  disabledLabel = "Unavailable",
   variant = "default",
   size = "sm",
   wrapperClassName,
@@ -24,7 +23,6 @@ export function BuyNowButton({
 }: {
   productId: number
   disabled?: boolean
-  disabledLabel?: string
   variant?: ButtonProps["variant"]
   size?: ButtonProps["size"]
   wrapperClassName?: string
@@ -57,7 +55,6 @@ export function BuyNowButton({
   }
 
   const busy = pending
-  const showUnavailable = disabled && !busy
 
   return (
     <div className={cn("flex w-full min-w-0 flex-col", wrapperClassName)}>
@@ -68,16 +65,10 @@ export function BuyNowButton({
         className={cn("min-w-0 shrink-0", buttonClassName)}
         disabled={disabled}
         aria-busy={busy}
-        aria-label={
-          showUnavailable
-            ? "Unavailable"
-            : busy
-              ? "Buying now"
-              : "Buy now"
-        }
+        aria-label={busy ? "Buying now" : "Buy now"}
         onClick={() => void handleClick()}
       >
-        {showUnavailable ? disabledLabel : busy ? "Buying..." : "Buy Now"}
+        {busy ? "Buying..." : "Buy Now"}
       </Button>
     </div>
   )
