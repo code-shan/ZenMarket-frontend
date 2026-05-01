@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AlertCircleIcon } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -16,10 +16,13 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  notifyAuthChanged,
+  sanitizePostLoginRedirect,
+  ZENMARKET_TOKEN_KEY,
+  ZENMARKET_USER_KEY,
+} from "@/lib/auth"
 import { loginUser } from "@/services/authService"
-
-const TOKEN_KEY = "zenmarket_token"
-const USER_KEY = "zenmarket_user"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -44,8 +47,9 @@ function validateClient(email: string, password: string): FieldErrors {
   return errors
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -70,10 +74,12 @@ export default function LoginPage() {
       })
 
       if (result.success) {
-        localStorage.setItem(TOKEN_KEY, result.data.token)
-        localStorage.setItem(USER_KEY, JSON.stringify(result.data.user))
+        localStorage.setItem(ZENMARKET_TOKEN_KEY, result.data.token)
+        localStorage.setItem(ZENMARKET_USER_KEY, JSON.stringify(result.data.user))
+        notifyAuthChanged()
         setPassword("")
-        router.push("/products")
+        const next = sanitizePostLoginRedirect(searchParams.get("redirect"))
+        router.push(next)
         router.refresh()
         return
       }
@@ -194,6 +200,15 @@ export default function LoginPage() {
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Create one
+              </Link>
+            </p>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
               <Link
                 href="/products"
                 className="font-medium text-primary underline-offset-4 hover:underline"
@@ -205,5 +220,21 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function LoginFallback() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-muted/40 via-background to-background py-16">
+      <p className="text-sm text-muted-foreground">Loading sign-in…</p>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
   )
 }

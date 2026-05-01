@@ -1,16 +1,20 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { isAuthenticated } from "@/lib/auth"
 import {
   formatUsdPrice,
   getProductDiscountLabel,
@@ -26,6 +30,9 @@ export function ProductCard({
   product: Product
   variant?: "default" | "compact"
 }) {
+  const router = useRouter()
+  const [cartHint, setCartHint] = useState<string | null>(null)
+
   const rawImage = product.image_url?.trim() ?? ""
   const hasImage = rawImage !== ""
   const imageSrc = hasImage ? rawImage : PRODUCT_IMAGE_PLACEHOLDER
@@ -48,6 +55,16 @@ export function ProductCard({
 
   const compact = variant === "compact"
   const outOfStock = product.is_out_of_stock
+
+  function handleAddToCart() {
+    setCartHint(null)
+    if (!isAuthenticated()) {
+      router.push("/login?redirect=/products")
+      return
+    }
+    if (outOfStock) return
+    setCartHint("Cart checkout is coming soon — thanks for your interest.")
+  }
 
   return (
     <Card
@@ -126,32 +143,41 @@ export function ProductCard({
             </span>
           ) : null}
         </div>
+        {cartHint ? (
+          <p className="text-xs font-medium text-muted-foreground" role="status">
+            {cartHint}
+          </p>
+        ) : null}
       </CardContent>
 
-      <CardFooter className="mt-auto flex flex-wrap gap-2 border-t bg-muted/30 pt-3 pb-3">
-        <Button
-          size="sm"
-          className="min-w-[7rem] flex-1"
-          nativeButton={false}
-          render={<Link href={`/products/${product.id}`} />}
-          aria-label={`View ${product.name}`}
-        >
-          View Product
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          type="button"
-          disabled
-          title={outOfStock ? "Out of stock" : "Coming soon"}
-          aria-label={
-            outOfStock
-              ? `${product.name} is out of stock`
-              : `Add ${product.name} to cart — coming soon`
-          }
-        >
-          {outOfStock ? "Unavailable" : "Add to Cart"}
-        </Button>
+      <CardFooter className="mt-auto flex flex-col gap-2 border-t bg-muted/30 pt-3 pb-3">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            className="min-w-[7rem] flex-1"
+            nativeButton={false}
+            render={<Link href={`/products/${product.id}`} />}
+            aria-label={`View ${product.name}`}
+          >
+            View Product
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            className="min-w-[7rem] flex-1"
+            disabled={outOfStock}
+            title={outOfStock ? "Out of stock" : undefined}
+            aria-label={
+              outOfStock
+                ? `${product.name} is out of stock`
+                : `Add ${product.name} to cart`
+            }
+            onClick={handleAddToCart}
+          >
+            {outOfStock ? "Unavailable" : "Add to Cart"}
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   )
