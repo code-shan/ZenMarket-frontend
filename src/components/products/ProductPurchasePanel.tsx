@@ -23,12 +23,12 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   const outOfStock = product.is_out_of_stock
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="gap-2 py-3">
+      <CardHeader className="gap-1 py-0 pb-1">
         <CardTitle className="text-lg">Purchase</CardTitle>
         <CardDescription>Pricing from catalog.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 pt-0">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="text-3xl font-semibold tabular-nums text-foreground">
             {formatUsdPrice(product.final_price)}
@@ -39,7 +39,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
             </p>
           ) : null}
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           <BuyNowButton
             productId={product.id}
             disabled={outOfStock}

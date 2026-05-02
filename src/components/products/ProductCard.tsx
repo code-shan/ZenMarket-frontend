@@ -55,7 +55,7 @@ export function ProductCard({
   return (
     <Card
       className={cn(
-        "group flex h-full flex-col overflow-hidden border-border/80 shadow-sm transition-[transform,box-shadow] duration-300",
+        "group flex h-full flex-col gap-2 overflow-hidden border-border/80 pb-3 pt-0 shadow-sm transition-[transform,box-shadow] duration-300",
         !outOfStock && "hover:-translate-y-1 hover:shadow-lg",
         compact && "text-sm",
         outOfStock && "opacity-[0.96]"
@@ -90,7 +90,7 @@ export function ProductCard({
           </>
         ) : null}
 
-        <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5">
+        <div className="absolute left-2 top-2 z-[1] flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5">
           {outOfStock ? (
             <Badge variant="destructive" className="shadow-sm">
               Out of stock
@@ -105,20 +105,25 @@ export function ProductCard({
             <Badge className="shadow-sm">{discountLabel}</Badge>
           ) : null}
         </div>
+
+        {product.category?.name ? (
+          <div className="pointer-events-none absolute bottom-2 left-2 z-[1] max-w-[calc(100%-1rem)]">
+            <p className="truncate rounded-md bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-[2px] sm:text-xs">
+              {product.category.name}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      <CardHeader className={`gap-1 ${compact ? "space-y-0 pb-2 pt-3" : "pb-0"}`}>
-        {product.category?.name ? (
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {product.category.name}
-          </p>
-        ) : null}
+      <CardHeader
+        className={`gap-0.5 py-0 ${compact ? "space-y-0 pb-1 pt-2" : "pb-0 pt-0"}`}
+      >
         <CardTitle className={`line-clamp-2 leading-snug ${compact ? "text-base" : "text-lg"}`}>
           {product.name}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className={`mt-auto flex flex-col gap-2 ${compact ? "pb-2 pt-0" : "pb-2 pt-0"}`}>
+      <CardContent className="flex flex-col gap-1 pb-0 pt-0">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className={`font-semibold tabular-nums text-foreground ${compact ? "text-lg" : "text-xl"}`}>
             {formatUsdPrice(product.final_price)}
@@ -131,7 +136,7 @@ export function ProductCard({
         </div>
       </CardContent>
 
-      <CardFooter className="mt-auto flex flex-col gap-2 border-t bg-muted/30 pt-3 pb-3">
+      <CardFooter className="mt-auto flex flex-col gap-1.5 border-t bg-muted/30 px-4 pb-2 pt-2">
         <Button
           size="sm"
           className="w-full"
