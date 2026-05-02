@@ -7,7 +7,9 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   ChevronDownIcon,
   ClipboardListIcon,
+  LogOutIcon,
   ShoppingBagIcon,
+  UserRoundIcon,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -74,6 +76,8 @@ function UserAccountMenu({ user }: { user: User }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const initials = getInitialsFromName(user.name)
+  const displayName = user.name.trim() || "Account"
+  const firstName = displayName.split(/\s+/)[0] ?? displayName
 
   useEffect(() => {
     if (!open) return
@@ -107,56 +111,81 @@ function UserAccountMenu({ user }: { user: User }) {
 
   return (
     <div className="relative" ref={wrapRef}>
-      <button
+      <Button
         type="button"
         id="navbar-user-menu-button"
+        variant="outline"
+        size="sm"
         className={cn(
-          "flex h-8 items-center gap-1.5 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-1.5 text-[0.8rem] font-medium shadow-sm outline-none transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
+          "h-8 max-w-full gap-2 rounded-lg border-border/90 bg-background px-1.5 pr-2 shadow-sm transition-colors sm:pr-2.5",
+          open && "border-primary/35 bg-muted/60"
         )}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls={menuId}
+        aria-label={`Account menu for ${displayName}`}
         onClick={() => setOpen((v) => !v)}
       >
         <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[0.65rem] font-semibold uppercase leading-none text-primary ring-1 ring-primary/20"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/25 to-primary/10 text-[0.65rem] font-semibold uppercase leading-none text-primary ring-1 ring-primary/15"
           aria-hidden
         >
           {initials}
         </span>
-        <span className="hidden max-w-[7rem] truncate sm:inline">
-          {user.name.trim().split(/\s+/)[0] ?? user.name}
+        <span className="hidden min-w-0 flex-1 flex-col items-start text-left sm:flex">
+          <span className="max-w-[7rem] truncate text-[0.75rem] font-semibold leading-tight">
+            {firstName}
+          </span>
+          <span className="text-muted-foreground max-w-[7rem] truncate text-[0.65rem] font-normal leading-tight">
+            {user.email}
+          </span>
         </span>
         <ChevronDownIcon
           className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+            "size-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
             open && "rotate-180"
           )}
           aria-hidden
         />
-      </button>
+      </Button>
 
       {open ? (
         <div
           id={menuId}
           role="menu"
           aria-labelledby="navbar-user-menu-button"
-          className="absolute right-0 z-[60] mt-2 min-w-[11rem] rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg outline-none dark:bg-popover"
+          className="animate-in fade-in-0 zoom-in-95 absolute right-0 z-[60] mt-2 min-w-[13.5rem] origin-top-right rounded-xl border border-border/90 bg-popover p-1.5 text-popover-foreground shadow-lg outline-none duration-100 dark:bg-popover"
         >
+          <div className="border-border/80 mb-1.5 rounded-lg border bg-muted/40 px-3 py-2">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {displayName}
+            </p>
+            <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+          </div>
           <Link
             href="/profile"
             role="menuitem"
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
             onClick={() => setOpen(false)}
           >
+            <UserRoundIcon
+              className="size-4 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
             Profile
           </Link>
+          <div
+            role="separator"
+            className="bg-border my-1 h-px"
+            aria-hidden
+          />
           <button
             type="button"
             role="menuitem"
-            className="w-full px-3 py-2 text-left text-sm font-medium text-destructive hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:outline-none"
             onClick={handleLogout}
           >
+            <LogOutIcon className="size-4 shrink-0 opacity-90" aria-hidden />
             Log out
           </button>
         </div>
@@ -238,8 +267,8 @@ export function Navbar({ className }: { className?: string }) {
           {user === undefined ? (
             <>
               <div className="flex items-center gap-2 sm:gap-3" aria-hidden>
-                <div className="hidden h-7 w-16 animate-pulse rounded-md bg-muted sm:block" />
-                <div className="h-7 w-14 animate-pulse rounded-md bg-muted" />
+                <div className="hidden h-8 w-[10.5rem] animate-pulse rounded-lg bg-muted sm:block" />
+                <div className="h-8 w-24 animate-pulse rounded-lg bg-muted sm:hidden" />
               </div>
               <Button
                 size="sm"
