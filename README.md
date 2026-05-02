@@ -16,15 +16,6 @@ ZenMarket is a customer-facing e-commerce frontend built using Next.js. It integ
 
 ---
 
-## ⚙️ Prerequisites
-
-- Node.js ≥ 20 (Recommended: Node 22+)
-- npm
-
-> Recommended (used in development): Node v22.17.1
-
----
-
 ## 🔗 Backend Repository (Required)
 
 This frontend requires a backend API to function.
@@ -34,6 +25,13 @@ This frontend requires a backend API to function.
 git clone https://github.com/code-shan/ZenMarket-backend.git
 ```
 Make sure the backend is running before starting this frontend.
+
+---
+
+## ⚙️ Prerequisites
+
+- Node.js ≥ 20 (Recommended: Node 22+)
+- npm
 
 ---
 
