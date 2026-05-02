@@ -4,7 +4,7 @@ import type { OrderStatus } from "@/types/order"
 
 const LABELS: Record<OrderStatus, string> = {
   pending: "Pending",
-  confirm: "Confirmed",
+  confirmed: "Confirmed",
   processing: "Processing",
   shipped: "Shipped",
   delivered: "Delivered",
@@ -13,7 +13,7 @@ const LABELS: Record<OrderStatus, string> = {
 
 const STYLES: Record<OrderStatus, string> = {
   pending: "border-transparent bg-muted text-muted-foreground",
-  confirm:
+  confirmed:
     "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-100",
   processing:
     "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100",
