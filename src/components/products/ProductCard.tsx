@@ -2,9 +2,9 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 
+import { AddToCartButton } from "@/components/cart/AddToCartButton"
+import { BuyNowButton } from "@/components/cart/BuyNowButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { isAuthenticated } from "@/lib/auth"
 import {
   formatUsdPrice,
   getProductDiscountLabel,
@@ -30,9 +29,6 @@ export function ProductCard({
   product: Product
   variant?: "default" | "compact"
 }) {
-  const router = useRouter()
-  const [cartHint, setCartHint] = useState<string | null>(null)
-
   const rawImage = product.image_url?.trim() ?? ""
   const hasImage = rawImage !== ""
   const imageSrc = hasImage ? rawImage : PRODUCT_IMAGE_PLACEHOLDER
@@ -56,20 +52,10 @@ export function ProductCard({
   const compact = variant === "compact"
   const outOfStock = product.is_out_of_stock
 
-  function handleAddToCart() {
-    setCartHint(null)
-    if (!isAuthenticated()) {
-      router.push("/login?redirect=/products")
-      return
-    }
-    if (outOfStock) return
-    setCartHint("Cart checkout is coming soon — thanks for your interest.")
-  }
-
   return (
     <Card
       className={cn(
-        "group flex h-full flex-col overflow-hidden border-border/80 shadow-sm transition-[transform,box-shadow] duration-300",
+        "group flex h-full flex-col gap-2 overflow-hidden border-border/80 pb-3 pt-0 shadow-sm transition-[transform,box-shadow] duration-300",
         !outOfStock && "hover:-translate-y-1 hover:shadow-lg",
         compact && "text-sm",
         outOfStock && "opacity-[0.96]"
@@ -104,7 +90,7 @@ export function ProductCard({
           </>
         ) : null}
 
-        <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5">
+        <div className="absolute left-2 top-2 z-[1] flex max-w-[calc(100%-1rem)] flex-wrap gap-1.5">
           {outOfStock ? (
             <Badge variant="destructive" className="shadow-sm">
               Out of stock
@@ -119,20 +105,25 @@ export function ProductCard({
             <Badge className="shadow-sm">{discountLabel}</Badge>
           ) : null}
         </div>
+
+        {product.category?.name ? (
+          <div className="pointer-events-none absolute bottom-2 left-2 z-[1] max-w-[calc(100%-1rem)]">
+            <p className="truncate rounded-md bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm backdrop-blur-[2px] sm:text-xs">
+              {product.category.name}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      <CardHeader className={`gap-1 ${compact ? "space-y-0 pb-2 pt-3" : "pb-0"}`}>
-        {product.category?.name ? (
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {product.category.name}
-          </p>
-        ) : null}
+      <CardHeader
+        className={`gap-0.5 py-0 ${compact ? "space-y-0 pb-1 pt-2" : "pb-0 pt-0"}`}
+      >
         <CardTitle className={`line-clamp-2 leading-snug ${compact ? "text-base" : "text-lg"}`}>
           {product.name}
         </CardTitle>
       </CardHeader>
 
-      <CardContent className={`mt-auto flex flex-col gap-2 ${compact ? "pb-2 pt-0" : "pb-2 pt-0"}`}>
+      <CardContent className="flex flex-col gap-1 pb-0 pt-0">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className={`font-semibold tabular-nums text-foreground ${compact ? "text-lg" : "text-xl"}`}>
             {formatUsdPrice(product.final_price)}
@@ -143,40 +134,36 @@ export function ProductCard({
             </span>
           ) : null}
         </div>
-        {cartHint ? (
-          <p className="text-xs font-medium text-muted-foreground" role="status">
-            {cartHint}
-          </p>
-        ) : null}
       </CardContent>
 
-      <CardFooter className="mt-auto flex flex-col gap-2 border-t bg-muted/30 pt-3 pb-3">
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            className="min-w-[7rem] flex-1"
-            nativeButton={false}
-            render={<Link href={`/products/${product.id}`} />}
-            aria-label={`View ${product.name}`}
-          >
-            View Product
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            className="min-w-[7rem] flex-1"
+      <CardFooter className="mt-auto flex flex-col gap-1.5 border-t bg-muted/30 px-4 pb-2 pt-2">
+        <Button
+          size="sm"
+          className="w-full"
+          nativeButton={false}
+          render={<Link href={`/products/${product.id}`} />}
+          aria-label={`View ${product.name}`}
+        >
+          View Product
+        </Button>
+        <div className="flex flex-wrap items-start gap-2">
+          <AddToCartButton
+            productId={product.id}
             disabled={outOfStock}
-            title={outOfStock ? "Out of stock" : undefined}
-            aria-label={
-              outOfStock
-                ? `${product.name} is out of stock`
-                : `Add ${product.name} to cart`
-            }
-            onClick={handleAddToCart}
-          >
-            {outOfStock ? "Unavailable" : "Add to Cart"}
-          </Button>
+            variant="outline"
+            size="sm"
+            wrapperClassName="min-w-0 flex-1 basis-[calc(50%-0.25rem)]"
+            buttonClassName="w-full"
+            loginRedirectPath={`/login?redirect=/products/${product.id}`}
+          />
+          <BuyNowButton
+            productId={product.id}
+            disabled={outOfStock}
+            size="sm"
+            wrapperClassName="min-w-0 flex-1 basis-[calc(50%-0.25rem)]"
+            buttonClassName="w-full shadow-sm"
+            loginRedirectPath="/login?redirect=/cart"
+          />
         </div>
       </CardFooter>
     </Card>

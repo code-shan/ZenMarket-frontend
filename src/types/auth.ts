@@ -73,3 +73,9 @@ export type UpdateProfileResponse = {
   message: string
   data: User
 }
+
+/** GET /profile — `{ message, data: User }` (no `success` flag). */
+export type FetchProfileResponse = {
+  message: string
+  data: User
+}

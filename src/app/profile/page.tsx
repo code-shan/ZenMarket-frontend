@@ -23,7 +23,7 @@ import {
   notifyAuthChanged,
   ZENMARKET_USER_KEY,
 } from "@/lib/auth"
-import { updateProfile } from "@/services/profileService"
+import { getProfile, updateProfile } from "@/services/profileService"
 
 const PHONE_REGEX = /^0[1-9]\d{8}$/
 
@@ -54,9 +54,24 @@ function validate(name: string, phone: string, address: string): FieldErrors {
   return errors
 }
 
+function hydrateFormFromUser(u: {
+  name: string
+  email: string
+  phone?: string | null
+  address?: string | null
+}) {
+  return {
+    name: u.name ?? "",
+    email: u.email ?? "",
+    phone: u.phone?.trim() ?? "",
+    address: u.address?.trim() ?? "",
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -65,24 +80,9 @@ export default function ProfilePage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [profileRetrying, setProfileRetrying] = useState(false)
 
   useEffect(() => {
-    function load() {
-      if (!isAuthenticated()) {
-        router.replace("/login?redirect=/profile")
-        setReady(true)
-        return
-      }
-      const u = getStoredUser()
-      if (u) {
-        setName(u.name ?? "")
-        setEmail(u.email ?? "")
-        setPhone(u.phone?.trim() ?? "")
-        setAddress(u.address?.trim() ?? "")
-      }
-      setReady(true)
-    }
-    load()
     function onAuthChange() {
       if (!isAuthenticated()) {
         router.replace("/login?redirect=/profile")
@@ -90,6 +90,53 @@ export default function ProfilePage() {
     }
     window.addEventListener(AUTH_CHANGED_EVENT, onAuthChange)
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChange)
+  }, [router])
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login?redirect=/profile")
+      setReady(true)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadProfile() {
+      setProfileLoadError(null)
+      try {
+        const user = await getProfile()
+        if (cancelled) return
+        localStorage.setItem(ZENMARKET_USER_KEY, JSON.stringify(user))
+        notifyAuthChanged()
+        const h = hydrateFormFromUser(user)
+        setName(h.name)
+        setEmail(h.email)
+        setPhone(h.phone)
+        setAddress(h.address)
+      } catch (err) {
+        if (cancelled) return
+        const msg =
+          err instanceof Error && err.message.trim() !== ""
+            ? err.message.trim()
+            : "Failed to load profile."
+        setProfileLoadError(msg)
+        const cached = getStoredUser()
+        if (cached) {
+          const h = hydrateFormFromUser(cached)
+          setName(h.name)
+          setEmail(h.email)
+          setPhone(h.phone)
+          setAddress(h.address)
+        }
+      } finally {
+        if (!cancelled) setReady(true)
+      }
+    }
+
+    void loadProfile()
+    return () => {
+      cancelled = true
+    }
   }, [router])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -118,8 +165,12 @@ export default function ProfilePage() {
       setPhone(res.data.phone?.trim() ?? "")
       setAddress(res.data.address?.trim() ?? "")
       setSuccess("Profile updated successfully.")
-    } catch {
-      setFormError("Failed to update profile. Please try again.")
+    } catch (err) {
+      setFormError(
+        err instanceof Error && err.message.trim() !== ""
+          ? err.message.trim()
+          : "Failed to update profile. Please try again."
+      )
     } finally {
       setPending(false)
     }
@@ -168,6 +219,58 @@ export default function ProfilePage() {
                 <AlertDescription>{success}</AlertDescription>
               </Alert>
             ) : null}
+            {profileLoadError ? (
+              <Alert variant="destructive">
+                <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span>{profileLoadError}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={profileRetrying}
+                    onClick={() => {
+                      void (async () => {
+                        setProfileRetrying(true)
+                        setProfileLoadError(null)
+                        try {
+                          const user = await getProfile()
+                          localStorage.setItem(
+                            ZENMARKET_USER_KEY,
+                            JSON.stringify(user)
+                          )
+                          notifyAuthChanged()
+                          const h = hydrateFormFromUser(user)
+                          setName(h.name)
+                          setEmail(h.email)
+                          setPhone(h.phone)
+                          setAddress(h.address)
+                          setProfileLoadError(null)
+                        } catch (err) {
+                          setProfileLoadError(
+                            err instanceof Error && err.message.trim() !== ""
+                              ? err.message.trim()
+                              : "Failed to load profile."
+                          )
+                          const cached = getStoredUser()
+                          if (cached) {
+                            const h = hydrateFormFromUser(cached)
+                            setName(h.name)
+                            setEmail(h.email)
+                            setPhone(h.phone)
+                            setAddress(h.address)
+                          }
+                        } finally {
+                          setProfileRetrying(false)
+                        }
+                      })()
+                    }}
+                  >
+                    {profileRetrying ? "Loading…" : "Retry"}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             {formError ? (
               <Alert variant="destructive">
                 <AlertDescription>{formError}</AlertDescription>

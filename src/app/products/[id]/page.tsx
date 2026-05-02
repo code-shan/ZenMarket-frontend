@@ -3,8 +3,9 @@ import Image from "next/image"
 import Link from "next/link"
 
 import { PageContainer } from "@/components/layout/PageContainer"
+import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -13,10 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { isLoopbackHttpUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media"
-import {
-  formatUsdPrice,
-  getProductDiscountLabel,
-} from "@/lib/product-display"
+import { getProductDiscountLabel } from "@/lib/product-display"
 import { cn } from "@/lib/utils"
 import { getProductById } from "@/services/productService"
 import type { Product } from "@/types/product"
@@ -74,13 +72,6 @@ function ProductDetailContent({ product }: { product: Product }) {
   const imageSrc = rawImage || PRODUCT_IMAGE_PLACEHOLDER
   const usingPlaceholder = !rawImage
   const unoptimized = isLoopbackHttpUrl(imageSrc)
-
-  const originalNum = Number.parseFloat(product.price)
-  const finalNum = Number.parseFloat(product.final_price)
-  const showOriginal =
-    Number.isFinite(originalNum) &&
-    Number.isFinite(finalNum) &&
-    finalNum < originalNum
 
   const discountLabel = getProductDiscountLabel(product)
   const imageAlt = usingPlaceholder
@@ -143,33 +134,8 @@ function ProductDetailContent({ product }: { product: Product }) {
           </CardContent>
         </Card>
 
-        <aside className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Purchase</CardTitle>
-              <CardDescription>Pricing from catalog.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <p className="text-3xl font-semibold tabular-nums text-foreground">
-                  {formatUsdPrice(product.final_price)}
-                </p>
-                {showOriginal ? (
-                  <p className="text-lg tabular-nums text-muted-foreground line-through">
-                    {formatUsdPrice(product.price)}
-                  </p>
-                ) : null}
-              </div>
-              <Button className="w-full" disabled>
-                {product.is_out_of_stock ? "Out of stock" : "Buy now"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                {product.is_out_of_stock
-                  ? "This item is currently unavailable."
-                  : "Checkout will connect when payments are enabled."}
-              </p>
-            </CardContent>
-          </Card>
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <ProductPurchasePanel product={product} />
         </aside>
       </div>
     </PageContainer>
