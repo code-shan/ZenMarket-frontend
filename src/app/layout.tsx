@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { CartToastHost } from "@/components/cart/CartToastHost"
+import { Footer } from "@/components/layout/Footer"
 import { Navbar } from "@/components/layout/Navbar"
 
 import "./globals.css"
@@ -38,6 +39,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <Navbar />
         <main className="flex flex-1 flex-col">{children}</main>
+        <Footer />
         <CartToastHost />
       </body>
     </html>
