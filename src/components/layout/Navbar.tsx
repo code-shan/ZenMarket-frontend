@@ -4,7 +4,11 @@ import type { ReactNode } from "react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ChevronDownIcon, ShoppingBagIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  ClipboardListIcon,
+  ShoppingBagIcon,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -142,7 +146,7 @@ function UserAccountMenu({ user }: { user: User }) {
           <Link
             href="/profile"
             role="menuitem"
-            className="block px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
             onClick={() => setOpen(false)}
           >
             Profile
@@ -251,6 +255,21 @@ export function Navbar({ className }: { className?: string }) {
           ) : user ? (
             <>
               <UserAccountMenu user={user} />
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "gap-1.5 shadow-sm",
+                  (pathname === "/orders" || pathname.startsWith("/orders/")) &&
+                    "border-primary/45 bg-primary/[0.06] text-foreground dark:bg-primary/10"
+                )}
+                nativeButton={false}
+                render={<Link href="/orders" />}
+                aria-label="My orders"
+              >
+                <ClipboardListIcon className="size-4 shrink-0" aria-hidden />
+                <span className="hidden sm:inline">My orders</span>
+              </Button>
               <Button
                 size="sm"
                 className="gap-1.5 shadow-sm ring-1 ring-primary/15"
