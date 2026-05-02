@@ -11,8 +11,17 @@ ZenMarket is a customer-facing e-commerce frontend built using Next.js. It integ
 * **Styling:** Tailwind CSS + shadcn/ui
 * **State Management:** Local state + URL query params
 * **API Integration:** REST API (Laravel backend)
-* **Authentication:** Token-based (localStorage)
+* **Authentication:** Token-based (HTTP-only Cookie)
 * **Architecture:** Component → Service → API
+
+---
+
+## ⚙️ Prerequisites
+
+- Node.js ≥ 20 (Recommended: Node 22+)
+- npm
+
+> Recommended (used in development): Node v22.17.1
 
 ---
 
@@ -172,7 +181,7 @@ Component → Service → API
 ## 📈 Future Improvements
 
 * Implement refresh token mechanism
-    * Introduce global state management (Zustand / Redux)
+* Introduce global state management (Zustand / Redux)
 * Integrate real payment gateways (Stripe / PayHere)
 * Real-time order updates (WebSockets)
 * API caching (React Query / SWR)
