@@ -15,9 +15,9 @@ import {
 import { Button } from "@/components/ui/button"
 import {
   AUTH_CHANGED_EVENT,
+  clearLegacyAuthStorage,
+  fetchSession,
   getInitialsFromName,
-  getStoredUser,
-  isAuthenticated,
   logoutUser,
 } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -100,9 +100,9 @@ function UserAccountMenu({ user }: { user: User }) {
     }
   }, [open])
 
-  function handleLogout() {
+  async function handleLogout() {
     setOpen(false)
-    logoutUser()
+    await logoutUser()
     router.push("/")
     router.refresh()
   }
@@ -207,20 +207,18 @@ export function Navbar({ className }: { className?: string }) {
   }, [])
 
   useEffect(() => {
-    function syncAuth() {
-      if (!isAuthenticated()) {
-        setUser(null)
-        return
-      }
-      const next = getStoredUser()
+    clearLegacyAuthStorage()
+  }, [])
+
+  useEffect(() => {
+    async function syncAuth() {
+      const next = await fetchSession()
       setUser(next ?? null)
     }
-    syncAuth()
+    void syncAuth()
     window.addEventListener(AUTH_CHANGED_EVENT, syncAuth)
-    window.addEventListener("storage", syncAuth)
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncAuth)
-      window.removeEventListener("storage", syncAuth)
     }
   }, [])
 

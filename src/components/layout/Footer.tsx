@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { MailIcon, MapPinIcon, PhoneIcon } from "lucide-react"
 
-import { AUTH_CHANGED_EVENT, isAuthenticated } from "@/lib/auth"
+import { AUTH_CHANGED_EVENT, fetchSession } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
 const YEAR = new Date().getFullYear()
@@ -44,16 +44,19 @@ export function Footer({ className }: { className?: string }) {
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
-    function sync() {
-      if (typeof window === "undefined") return
-      setLoggedIn(isAuthenticated())
+    let cancelled = false
+    async function sync() {
+      const user = await fetchSession()
+      if (!cancelled) setLoggedIn(Boolean(user))
     }
-    sync()
-    window.addEventListener(AUTH_CHANGED_EVENT, sync)
-    window.addEventListener("storage", sync)
+    void sync()
+    function onAuth() {
+      void sync()
+    }
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuth)
     return () => {
-      window.removeEventListener(AUTH_CHANGED_EVENT, sync)
-      window.removeEventListener("storage", sync)
+      cancelled = true
+      window.removeEventListener(AUTH_CHANGED_EVENT, onAuth)
     }
   }, [])
 

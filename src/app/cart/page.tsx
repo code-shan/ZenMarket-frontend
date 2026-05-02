@@ -19,10 +19,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  AUTH_CHANGED_EVENT,
-  getAuthToken,
-} from "@/lib/auth"
+import { AUTH_CHANGED_EVENT, fetchSession } from "@/lib/auth"
 import { isLoopbackHttpUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media"
 import {
   clearCart,
@@ -150,8 +147,9 @@ export default function CartPage() {
   const [clearError, setClearError] = useState<string | null>(null)
   const [clearSuccess, setClearSuccess] = useState(false)
 
-  const syncGateFromStorage = useCallback(() => {
-    if (!getAuthToken()) {
+  const syncGateFromSession = useCallback(async () => {
+    const user = await fetchSession()
+    if (!user) {
       setGate("guest")
       router.replace("/login?redirect=/cart")
       return false
@@ -161,7 +159,8 @@ export default function CartPage() {
   }, [router])
 
   const loadCart = useCallback(async () => {
-    if (!getAuthToken()) {
+    const user = await fetchSession()
+    if (!user) {
       router.replace("/login?redirect=/cart")
       return
     }
@@ -244,20 +243,26 @@ export default function CartPage() {
   }, [fetchState, router])
 
   useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const ok = await syncGateFromSession()
+      if (cancelled) return
+      if (!ok) setFetchState({ status: "idle" })
+    })()
+
     function onAuthChange() {
-      const ok = syncGateFromStorage()
-      if (ok) void loadCart()
-      else setFetchState({ status: "idle" })
+      void (async () => {
+        const ok = await syncGateFromSession()
+        if (ok) void loadCart()
+        else setFetchState({ status: "idle" })
+      })()
     }
-    const ok = syncGateFromStorage()
-    if (!ok) setFetchState({ status: "idle" })
     window.addEventListener(AUTH_CHANGED_EVENT, onAuthChange)
-    window.addEventListener("storage", onAuthChange)
     return () => {
+      cancelled = true
       window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChange)
-      window.removeEventListener("storage", onAuthChange)
     }
-  }, [syncGateFromStorage, loadCart])
+  }, [syncGateFromSession, loadCart])
 
   useEffect(() => {
     if (gate === "member") void loadCart()

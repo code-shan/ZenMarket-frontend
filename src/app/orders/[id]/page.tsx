@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getAuthToken } from "@/lib/auth"
+import { fetchSession } from "@/lib/auth"
 import { getOrderById } from "@/services/orderService"
 import type { Order } from "@/types/order"
 
@@ -41,12 +41,20 @@ export default function OrderDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!getAuthToken()) {
-      const path = id ? `/orders/${encodeURIComponent(id)}` : "/orders"
-      router.replace(`/login?redirect=${encodeURIComponent(path)}`)
-      return
+    let cancelled = false
+    void (async () => {
+      const user = await fetchSession()
+      if (cancelled) return
+      if (!user) {
+        const path = id ? `/orders/${encodeURIComponent(id)}` : "/orders"
+        router.replace(`/login?redirect=${encodeURIComponent(path)}`)
+        return
+      }
+      setAllowed(true)
+    })()
+    return () => {
+      cancelled = true
     }
-    setAllowed(true)
   }, [id, router])
 
   const redirectLogin = useCallback(() => {
@@ -60,7 +68,8 @@ export default function OrderDetailPage() {
       setLoading(false)
       return
     }
-    if (!getAuthToken()) {
+    const sessionUser = await fetchSession()
+    if (!sessionUser) {
       redirectLogin()
       return
     }

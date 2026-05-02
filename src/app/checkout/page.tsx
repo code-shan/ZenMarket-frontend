@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { getAuthToken, getStoredUser } from "@/lib/auth"
+import { fetchSession } from "@/lib/auth"
 import { isLoopbackHttpUrl, PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/media"
 import { clearCart, getCart } from "@/services/cartService"
 import { createOrder, orderClientErrorMessage } from "@/services/orderService"
@@ -89,27 +89,37 @@ export default function CheckoutPage() {
   })
 
   useEffect(() => {
-    if (!getAuthToken() || !getStoredUser()) {
-      router.replace("/login?redirect=/checkout")
-      setGuard("unauthed")
-      return
+    let cancelled = false
+    void (async () => {
+      const user = await fetchSession()
+      if (cancelled) return
+      if (!user) {
+        router.replace("/login?redirect=/checkout")
+        setGuard("unauthed")
+        return
+      }
+      setGuard("ok")
+    })()
+    return () => {
+      cancelled = true
     }
-    setGuard("ok")
   }, [router])
 
   useEffect(() => {
     if (guard !== "ok") return
     if (prefillDone.current) return
     prefillDone.current = true
-    const u = getStoredUser()
-    if (u) {
-      form.reset({
-        customer_name: u.name,
-        customer_email: u.email,
-        customer_contact: (u.phone ?? "").trim(),
-        shipping_address: (u.address ?? "").trim(),
-      })
-    }
+    void (async () => {
+      const u = await fetchSession()
+      if (u) {
+        form.reset({
+          customer_name: u.name,
+          customer_email: u.email,
+          customer_contact: (u.phone ?? "").trim(),
+          shipping_address: (u.address ?? "").trim(),
+        })
+      }
+    })()
   }, [guard, form])
 
   useEffect(() => {

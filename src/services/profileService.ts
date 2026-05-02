@@ -1,5 +1,4 @@
 import { api } from "@/lib/api"
-import { getAuthToken } from "@/lib/auth"
 import type {
   UpdateProfileRequest,
   UpdateProfileResponse,
@@ -33,16 +32,14 @@ function parseFetchProfileBody(raw: unknown): User {
   return data as User
 }
 
+const AUTH = { cookieAuth: true as const }
+
 /**
- * GET /profile — authenticated profile (Bearer token).
+ * GET /profile — authenticated profile (session cookie).
  * Response shape: `{ message, data: User }`.
  */
 export async function getProfile(): Promise<User> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error("You must be logged in to view your profile.")
-  }
-  const raw = await api.get<unknown>("profile", { token })
+  const raw = await api.get<unknown>("profile", AUTH)
   return parseFetchProfileBody(raw)
 }
 
@@ -52,9 +49,5 @@ export async function getProfile(): Promise<User> {
 export async function updateProfile(
   body: UpdateProfileRequest
 ): Promise<UpdateProfileResponse> {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error("You must be logged in to update your profile.")
-  }
-  return api.patchJson<UpdateProfileResponse>("profile", body, { token })
+  return api.patchJson<UpdateProfileResponse>("profile", body, AUTH)
 }

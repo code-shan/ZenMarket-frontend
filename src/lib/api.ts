@@ -12,6 +12,21 @@ function apiUrl(path: string): string {
   return `${base}/${normalized}`
 }
 
+function isBrowser(): boolean {
+  return typeof window !== "undefined"
+}
+
+/** Same-origin proxy — attaches Bearer from HttpOnly cookie on the server */
+function backendProxyUrl(path: string): string {
+  const normalized = path.startsWith("/") ? path.slice(1) : path
+  return `/api/backend/${normalized}`
+}
+
+export type CookieAuthOption = {
+  /** Browser-only: authenticated requests via `/api/backend/*` + HttpOnly cookie */
+  cookieAuth?: boolean
+}
+
 /** First string from Laravel-style `{ errors: { field: ["msg"] } }` bodies. */
 function firstValidationErrorsLine(errors: unknown): string {
   if (!errors || typeof errors !== "object") return ""
@@ -66,17 +81,20 @@ async function parseErrorBody(response: Response): Promise<string> {
 export const api = {
   async get<T>(
     path: string,
-    options?: { token?: string; cache?: RequestCache }
+    options?: { token?: string; cache?: RequestCache } & CookieAuthOption
   ): Promise<T> {
-    const url = apiUrl(path)
+    const useCookieProxy =
+      isBrowser() && options?.cookieAuth === true
+    const url = useCookieProxy ? backendProxyUrl(path) : apiUrl(path)
     const headers: Record<string, string> = { Accept: "application/json" }
-    if (options?.token?.trim()) {
+    if (!useCookieProxy && options?.token?.trim()) {
       headers.Authorization = `Bearer ${options.token.trim()}`
     }
     const response = await fetch(url, {
       method: "GET",
       headers,
       cache: options?.cache ?? "no-store",
+      ...(useCookieProxy ? { credentials: "include" as RequestCredentials } : {}),
     })
 
     if (!response.ok) {
@@ -138,7 +156,7 @@ export const api = {
   async putJson<T>(
     path: string,
     body: unknown,
-    options?: { token?: string }
+    options?: { token?: string } & CookieAuthOption
   ): Promise<T> {
     return authJsonMutation<T>("PUT", path, body, options)
   },
@@ -149,7 +167,7 @@ export const api = {
   async patchJson<T>(
     path: string,
     body: unknown,
-    options?: { token?: string }
+    options?: { token?: string } & CookieAuthOption
   ): Promise<T> {
     return authJsonMutation<T>("PATCH", path, body, options)
   },
@@ -160,7 +178,7 @@ export const api = {
   async post<T>(
     path: string,
     body: unknown,
-    options?: { token?: string }
+    options?: { token?: string } & CookieAuthOption
   ): Promise<T> {
     return authJsonMutation<T>("POST", path, body, options)
   },
@@ -168,7 +186,10 @@ export const api = {
   /**
    * DELETE with optional Bearer token. Throws if response is not OK or body is not JSON.
    */
-  async delete<T>(path: string, options?: { token?: string }): Promise<T> {
+  async delete<T>(
+    path: string,
+    options?: { token?: string } & CookieAuthOption
+  ): Promise<T> {
     return authJsonMutation<T>("DELETE", path, undefined, options)
   },
 }
@@ -177,11 +198,14 @@ async function authJsonMutation<T>(
   method: "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body: unknown | undefined,
-  options?: { token?: string }
+  options?: { token?: string } & CookieAuthOption
 ): Promise<T> {
+  const useCookieProxy =
+    isBrowser() && options?.cookieAuth === true
+
   let url: string
   try {
-    url = apiUrl(path)
+    url = useCookieProxy ? backendProxyUrl(path) : apiUrl(path)
   } catch {
     throw new Error("Something went wrong. Please try again.")
   }
@@ -192,7 +216,7 @@ async function authJsonMutation<T>(
   if (method !== "DELETE") {
     headers["Content-Type"] = "application/json"
   }
-  if (options?.token?.trim()) {
+  if (!useCookieProxy && options?.token?.trim()) {
     headers.Authorization = `Bearer ${options.token.trim()}`
   }
 
@@ -201,6 +225,7 @@ async function authJsonMutation<T>(
     response = await fetch(url, {
       method,
       headers,
+      ...(useCookieProxy ? { credentials: "include" as RequestCredentials } : {}),
       body:
         method === "DELETE"
           ? undefined

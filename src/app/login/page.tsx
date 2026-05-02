@@ -17,12 +17,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  fetchSession,
   notifyAuthChanged,
   sanitizePostLoginRedirect,
-  ZENMARKET_TOKEN_KEY,
-  ZENMARKET_USER_KEY,
 } from "@/lib/auth"
-import { loginUser } from "@/services/authService"
+import type { ApiFieldErrors } from "@/types/auth"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -68,14 +67,28 @@ function LoginForm() {
 
     setPending(true)
     try {
-      const result = await loginUser({
-        email: trimmedEmail,
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          password,
+        }),
       })
 
-      if (result.success) {
-        localStorage.setItem(ZENMARKET_TOKEN_KEY, result.data.token)
-        localStorage.setItem(ZENMARKET_USER_KEY, JSON.stringify(result.data.user))
+      const body = (await res.json()) as {
+        success?: boolean
+        message?: string
+        user?: unknown
+        errors?: ApiFieldErrors
+      }
+
+      if (res.ok && body.success && body.user && typeof body.user === "object") {
+        await fetchSession()
         notifyAuthChanged()
         setPassword("")
         const next = sanitizePostLoginRedirect(searchParams.get("redirect"))
@@ -84,10 +97,14 @@ function LoginForm() {
         return
       }
 
-      setFormError(result.message || "Invalid credentials.")
+      setFormError(
+        typeof body.message === "string" && body.message.trim() !== ""
+          ? body.message
+          : "Invalid credentials."
+      )
       const next: FieldErrors = {}
-      if (result.errors) {
-        for (const [key, msgs] of Object.entries(result.errors)) {
+      if (body.errors) {
+        for (const [key, msgs] of Object.entries(body.errors)) {
           const first = msgs?.[0]
           if (first && (key === "email" || key === "password")) {
             next[key] = first
