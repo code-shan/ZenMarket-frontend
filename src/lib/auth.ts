@@ -1,6 +1,10 @@
 import type { User } from "@/types/auth"
 
+import { AUTH_SESSION_HINT_KEY } from "@/lib/auth-cookie"
+
+/** @deprecated Legacy keys — cleared on load */
 export const ZENMARKET_TOKEN_KEY = "zenmarket_token"
+/** @deprecated Legacy keys — cleared on load */
 export const ZENMARKET_USER_KEY = "zenmarket_user"
 
 export const AUTH_CHANGED_EVENT = "zenmarket-auth-change"
@@ -10,38 +14,27 @@ export function notifyAuthChanged(): void {
   window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
 }
 
-export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null
+export function setSessionHint(active: boolean): void {
+  if (typeof window === "undefined") return
   try {
-    const t = localStorage.getItem(ZENMARKET_TOKEN_KEY)
-    return t && t.trim() !== "" ? t : null
+    if (active) sessionStorage.setItem(AUTH_SESSION_HINT_KEY, "1")
+    else sessionStorage.removeItem(AUTH_SESSION_HINT_KEY)
   } catch {
-    return null
+    // ignore
   }
 }
 
-export function getStoredUser(): User | null {
-  if (typeof window === "undefined") return null
+export function hasSessionHint(): boolean {
+  if (typeof window === "undefined") return false
   try {
-    const raw = localStorage.getItem(ZENMARKET_USER_KEY)
-    if (!raw?.trim()) return null
-    const parsed = JSON.parse(raw) as unknown
-    if (!parsed || typeof parsed !== "object") return null
-    const u = parsed as Record<string, unknown>
-    if (typeof u.id !== "number" || typeof u.name !== "string" || typeof u.email !== "string") {
-      return null
-    }
-    return parsed as User
+    return sessionStorage.getItem(AUTH_SESSION_HINT_KEY) === "1"
   } catch {
-    return null
+    return false
   }
 }
 
-export function isAuthenticated(): boolean {
-  return Boolean(getAuthToken() && getStoredUser())
-}
-
-export function logoutUser(): void {
+/** Removes tokens saved before cookie-based auth (localStorage). */
+export function clearLegacyAuthStorage(): void {
   if (typeof window === "undefined") return
   try {
     localStorage.removeItem(ZENMARKET_TOKEN_KEY)
@@ -49,7 +42,65 @@ export function logoutUser(): void {
   } catch {
     // ignore
   }
+}
+
+/**
+ * Loads the current user via GET /api/auth/session (HttpOnly cookie → backend profile).
+ */
+export async function fetchSession(): Promise<User | null> {
+  try {
+    const res = await fetch("/api/auth/session", {
+      credentials: "include",
+      cache: "no-store",
+    })
+    if (!res.ok) {
+      setSessionHint(false)
+      return null
+    }
+    const data = (await res.json()) as { user?: User | null }
+    const user = data.user ?? null
+    setSessionHint(Boolean(user))
+    return user
+  } catch {
+    setSessionHint(false)
+    return null
+  }
+}
+
+/**
+ * Fast synchronous hint only — real auth is always validated by the API via cookies.
+ */
+export function isAuthenticated(): boolean {
+  return hasSessionHint()
+}
+
+export async function logoutUser(): Promise<void> {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    })
+  } catch {
+    // ignore network errors
+  }
+  setSessionHint(false)
+  clearLegacyAuthStorage()
   notifyAuthChanged()
+}
+
+/**
+ * The access token is HttpOnly — never readable from JavaScript.
+ * @deprecated Always returns null on the client.
+ */
+export function getAuthToken(): string | null {
+  return null
+}
+
+/**
+ * @deprecated Use `fetchSession()` — user JSON is not stored in localStorage anymore.
+ */
+export function getStoredUser(): User | null {
+  return null
 }
 
 /** Display initials for avatar chips (e.g. "John Doe" → "JD"). */

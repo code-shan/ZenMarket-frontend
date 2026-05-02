@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
-import { getAuthToken } from "@/lib/auth"
+import { fetchSession } from "@/lib/auth"
 import { notifyCartToast } from "@/lib/cart-toast"
 import { cn } from "@/lib/utils"
 import { addCartItem, cartClientErrorMessage } from "@/services/cartService"
@@ -33,7 +33,8 @@ export function AddToCartButton({
   const [pending, setPending] = useState(false)
 
   async function handleClick() {
-    if (!getAuthToken()) {
+    const user = await fetchSession()
+    if (!user) {
       router.push(loginRedirectPath)
       return
     }

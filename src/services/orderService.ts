@@ -1,5 +1,4 @@
 import { api } from "@/lib/api"
-import { getAuthToken } from "@/lib/auth"
 import type {
   CreateOrderRequest,
   CreateOrderResponse,
@@ -7,14 +6,6 @@ import type {
   OrderPaginationMeta,
   OrderQueryParams,
 } from "@/types/order"
-
-function requireToken(): string {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error("Authentication required")
-  }
-  return token
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object"
@@ -74,15 +65,16 @@ function parseSingleOrderEnvelope(raw: unknown): Order {
   return data as Order
 }
 
+const AUTH = { cookieAuth: true as const }
+
 /**
- * Place order (COD). POST /orders with Bearer token.
+ * Place order (COD). POST /orders with session cookie.
  * Throws `Error` with API message on failure (empty cart, stock, validation, etc.).
  */
 export async function createOrder(
   payload: CreateOrderRequest
 ): Promise<Order> {
-  const token = requireToken()
-  const raw = await api.post<CreateOrderResponse>("orders", payload, { token })
+  const raw = await api.post<CreateOrderResponse>("orders", payload, AUTH)
 
   if (!raw || typeof raw !== "object") {
     throw new Error("Failed to place order. Please try again.")
@@ -124,14 +116,13 @@ export async function getOrders(
   items: Order[]
   pagination: OrderPaginationMeta
 }> {
-  const token = requireToken()
   const page = params?.page ?? 1
   const perPage = params?.per_page ?? 10
   const qs = new URLSearchParams({
     page: String(page),
     per_page: String(perPage),
   })
-  const raw = await api.get<unknown>(`orders?${qs.toString()}`, { token })
+  const raw = await api.get<unknown>(`orders?${qs.toString()}`, AUTH)
   return parseOrdersListEnvelope(raw)
 }
 
@@ -139,9 +130,8 @@ export async function getOrders(
  * GET /orders/{id}
  */
 export async function getOrderById(id: number | string): Promise<Order> {
-  const token = requireToken()
   const path = `orders/${encodeURIComponent(String(id))}`
-  const raw = await api.get<unknown>(path, { token })
+  const raw = await api.get<unknown>(path, AUTH)
   return parseSingleOrderEnvelope(raw)
 }
 

@@ -1,5 +1,4 @@
 import { api, getApiBaseUrl } from "@/lib/api"
-import { getAuthToken } from "@/lib/auth"
 import type {
   AddCartItemRequest,
   CartApiResponse,
@@ -31,14 +30,6 @@ export function normalizeCartData(data: CartData): CartData {
     ...data,
     items: Array.isArray(data.items) ? data.items.map(normalizeItem) : [],
   }
-}
-
-function requireToken(): string {
-  const token = getAuthToken()
-  if (!token) {
-    throw new Error("Authentication required")
-  }
-  return token
 }
 
 function isCartApiResponse(value: unknown): value is CartApiResponse {
@@ -101,13 +92,13 @@ function isClearCartEnvelope(value: unknown): value is {
   return typeof o.success === "boolean" && typeof o.message === "string"
 }
 
+const AUTH = { cookieAuth: true as const }
+
 /**
- * GET /cart — authenticated cart payload.
+ * GET /cart — authenticated cart payload (session cookie).
  */
 export async function getCart(): Promise<CartData> {
-  const token = requireToken()
-
-  const raw = await api.get<unknown>("cart", { token })
+  const raw = await api.get<unknown>("cart", AUTH)
   if (!isCartApiResponse(raw)) {
     throw new Error("Unexpected response from server.")
   }
@@ -129,8 +120,7 @@ export async function getCart(): Promise<CartData> {
 export async function addCartItem(
   payload: AddCartItemRequest
 ): Promise<CartData> {
-  const token = requireToken()
-  const raw = await api.post<unknown>("cart/items", payload, { token })
+  const raw = await api.post<unknown>("cart/items", payload, AUTH)
   return parseCartMutationEnvelope(raw)
 }
 
@@ -138,10 +128,7 @@ export async function addCartItem(
  * DELETE /cart/items/{productId}
  */
 export async function removeCartItem(productId: number): Promise<CartData> {
-  const token = requireToken()
-  const raw = await api.delete<unknown>(`cart/items/${productId}`, {
-    token,
-  })
+  const raw = await api.delete<unknown>(`cart/items/${productId}`, AUTH)
   return parseCartMutationEnvelope(raw)
 }
 
@@ -149,8 +136,7 @@ export async function removeCartItem(productId: number): Promise<CartData> {
  * DELETE /cart — empty cart on server.
  */
 export async function clearCart(): Promise<void> {
-  const token = requireToken()
-  const raw = await api.delete<unknown>("cart", { token })
+  const raw = await api.delete<unknown>("cart", AUTH)
 
   if (!raw || typeof raw !== "object") {
     throw new Error("Unexpected response from server.")

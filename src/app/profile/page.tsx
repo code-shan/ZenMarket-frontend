@@ -17,11 +17,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   AUTH_CHANGED_EVENT,
+  fetchSession,
   getInitialsFromName,
-  getStoredUser,
-  isAuthenticated,
   notifyAuthChanged,
-  ZENMARKET_USER_KEY,
 } from "@/lib/auth"
 import { getProfile, updateProfile } from "@/services/profileService"
 
@@ -71,6 +69,7 @@ function hydrateFormFromUser(u: {
 export default function ProfilePage() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
+  const [allowed, setAllowed] = useState(false)
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -83,51 +82,54 @@ export default function ProfilePage() {
   const [profileRetrying, setProfileRetrying] = useState(false)
 
   useEffect(() => {
-    function onAuthChange() {
-      if (!isAuthenticated()) {
-        router.replace("/login?redirect=/profile")
-      }
+    async function onAuthChange() {
+      const u = await fetchSession()
+      if (!u) router.replace("/login?redirect=/profile")
     }
     window.addEventListener(AUTH_CHANGED_EVENT, onAuthChange)
     return () => window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChange)
   }, [router])
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.replace("/login?redirect=/profile")
-      setReady(true)
-      return
-    }
-
     let cancelled = false
 
     async function loadProfile() {
       setProfileLoadError(null)
       try {
-        const user = await getProfile()
+        const sessionUser = await fetchSession()
         if (cancelled) return
-        localStorage.setItem(ZENMARKET_USER_KEY, JSON.stringify(user))
-        notifyAuthChanged()
-        const h = hydrateFormFromUser(user)
-        setName(h.name)
-        setEmail(h.email)
-        setPhone(h.phone)
-        setAddress(h.address)
-      } catch (err) {
-        if (cancelled) return
-        const msg =
-          err instanceof Error && err.message.trim() !== ""
-            ? err.message.trim()
-            : "Failed to load profile."
-        setProfileLoadError(msg)
-        const cached = getStoredUser()
-        if (cached) {
-          const h = hydrateFormFromUser(cached)
+        if (!sessionUser) {
+          router.replace("/login?redirect=/profile")
+          setReady(true)
+          return
+        }
+
+        try {
+          const user = await getProfile()
+          if (cancelled) return
+          const h = hydrateFormFromUser(user)
           setName(h.name)
           setEmail(h.email)
           setPhone(h.phone)
           setAddress(h.address)
+          setAllowed(true)
+        } catch (err) {
+          if (cancelled) return
+          const msg =
+            err instanceof Error && err.message.trim() !== ""
+              ? err.message.trim()
+              : "Failed to load profile."
+          setProfileLoadError(msg)
+          const h = hydrateFormFromUser(sessionUser)
+          setName(h.name)
+          setEmail(h.email)
+          setPhone(h.phone)
+          setAddress(h.address)
+          setAllowed(true)
         }
+      } catch {
+        if (cancelled) return
+        router.replace("/login?redirect=/profile")
       } finally {
         if (!cancelled) setReady(true)
       }
@@ -158,8 +160,8 @@ export default function ProfilePage() {
         phone: trimmedPhone,
         address: trimmedAddress,
       })
-      localStorage.setItem(ZENMARKET_USER_KEY, JSON.stringify(res.data))
       notifyAuthChanged()
+      await fetchSession()
       setName(res.data.name)
       setEmail(res.data.email)
       setPhone(res.data.phone?.trim() ?? "")
@@ -176,7 +178,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (!ready || !isAuthenticated()) {
+  if (!ready || !allowed) {
     return (
       <div className="flex flex-1 flex-col bg-muted/30 py-10 md:py-14">
         <div className="mx-auto w-full max-w-lg px-4 text-sm text-muted-foreground">
@@ -186,10 +188,7 @@ export default function ProfilePage() {
     )
   }
 
-  const displayUser = getStoredUser()
-  const initials = displayUser
-    ? getInitialsFromName(displayUser.name)
-    : "?"
+  const initials = getInitialsFromName(name.trim() || "?")
 
   return (
     <div className="flex flex-1 flex-col bg-gradient-to-b from-muted/40 via-background to-background py-10 md:py-14">
@@ -234,11 +233,8 @@ export default function ProfilePage() {
                         setProfileLoadError(null)
                         try {
                           const user = await getProfile()
-                          localStorage.setItem(
-                            ZENMARKET_USER_KEY,
-                            JSON.stringify(user)
-                          )
                           notifyAuthChanged()
+                          await fetchSession()
                           const h = hydrateFormFromUser(user)
                           setName(h.name)
                           setEmail(h.email)
@@ -251,9 +247,9 @@ export default function ProfilePage() {
                               ? err.message.trim()
                               : "Failed to load profile."
                           )
-                          const cached = getStoredUser()
-                          if (cached) {
-                            const h = hydrateFormFromUser(cached)
+                          const sessionUser = await fetchSession()
+                          if (sessionUser) {
+                            const h = hydrateFormFromUser(sessionUser)
                             setName(h.name)
                             setEmail(h.email)
                             setPhone(h.phone)

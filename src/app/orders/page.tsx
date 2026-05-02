@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getAuthToken } from "@/lib/auth"
+import { fetchSession } from "@/lib/auth"
 import { getOrders } from "@/services/orderService"
 import type { Order, OrderPaginationMeta } from "@/types/order"
 
@@ -61,11 +61,19 @@ function OrdersPageInner() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!getAuthToken()) {
-      router.replace("/login?redirect=/orders")
-      return
+    let cancelled = false
+    void (async () => {
+      const user = await fetchSession()
+      if (cancelled) return
+      if (!user) {
+        router.replace("/login?redirect=/orders")
+        return
+      }
+      setAllowed(true)
+    })()
+    return () => {
+      cancelled = true
     }
-    setAllowed(true)
   }, [router])
 
   const load = useCallback(async () => {
